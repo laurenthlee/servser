@@ -69,7 +69,9 @@
         res.status(400).json({ message: error.message });
     }
     });
-
+    app.get('/health', (req, res) => {
+      res.status(200).send('OK');
+    });
     // Start the server
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}`)
