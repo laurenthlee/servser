@@ -6,58 +6,52 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// MongoDB connection string
+// MongoDB Atlas connection credentials
 const username = 'admin';
-const password = encodeURIComponent("@Lauren2040");
+const password = encodeURIComponent("@Lauren2040"); // Handle special characters
 const mongoURI = `mongodb+srv://${username}:${password}@cluster0.1wd6m.mongodb.net/duriandata?retryWrites=true&w=majority`;
 
 // Connect to MongoDB Atlas
-mongoose.connect(mongoURI)
+mongoose.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
   .then(() => console.log('Connected to MongoDB Atlas'))
-  .catch((err) => console.error('Error connecting to MongoDB Atlas:', err));
+  .catch(err => console.error('Error connecting to MongoDB Atlas:', err));
 
 app.use(cors());
 app.use(bodyParser.json());
 
-// Define a simple Mongoose model schema
-const Model = mongoose.model('model', new mongoose.Schema({
-  name: String,
-  description: String,
-}));
+// Define GridFS schema to access fs.files for model metadata
+const gfsFilesSchema = new mongoose.Schema({
+  filename: String,
+  chunkSize: Number,
+  length: Number,
+  uploadDate: Date
+}, { collection: 'fs.files' }); // Specify the 'fs.files' collection
+
+const GfsFile = mongoose.model('GfsFile', gfsFilesSchema); // Model for accessing `fs.files`
 
 // Root route
 app.get('/', (req, res) => {
-  res.send('Welcome to the API! Use /api/model to access model data.');
+  res.send('Welcome to the API');
 });
 
-// Combined route for fetching models with pagination, sorting, and field limiting
+// Route for fetching model metadata from fs.files
 app.get('/api/model', async (req, res) => {
-  const { page = 1, limit = 10, sortBy = 'name', sortOrder = 'asc' } = req.query;
-
   try {
-    const models = await Model.find({}, 'name description') // Only return name and description fields
-      .limit(Number(limit))
-      .skip((page - 1) * limit)
-      .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
-      .exec();
-
-    const count = await Model.countDocuments();
-
-    res.json({
-      models,
-      totalPages: Math.ceil(count / limit),
-      currentPage: Number(page),
-    });
+    const models = await GfsFile.find({}, 'filename uploadDate length'); // Fetch specific fields
+    res.json({ models }); // Return model metadata
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Health check routes
+// Health check routes for Render
 app.get('/health', (req, res) => res.status(200).send('OK'));
 app.get('/server', (req, res) => res.status(200).send('OK'));
 
 // Start the server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on port ${PORT}`);
 });
