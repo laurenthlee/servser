@@ -76,3 +76,6 @@
     app.listen(PORT, () => {
       console.log(`Example app listening on port ${PORT}`)
     })
+    app.get('/server', (req, res) => {
+      res.status(200).send('OK');
+    });
