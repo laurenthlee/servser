@@ -29,11 +29,20 @@
 
     // Root route for '/'
     app.get('/', (req, res) => {
-    res.send('Welcome to the API! Use /api/models to access model data.');
+    res.send('Welcome to the API! Use /api/model to access model data.');
+    });
+
+    app.get('/api/model', async (req, res) => {
+      try {
+        const models = await Model.find({}); // Fetch models from MongoDB
+        res.json({ models });
+      } catch (error) {
+        res.status(500).json({ message: error.message });
+      }
     });
 
     // Route to get models with pagination, sorting, and field limiting
-    app.get('/api/models', async (req, res) => {
+    app.get('/api/model', async (req, res) => {
     // Get pagination, sorting, and limit parameters from the query
     const { page = 1, limit = 10, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
@@ -55,18 +64,6 @@
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
-    }
-    });
-
-    // Route to create a new model
-    app.post('/api/models', async (req, res) => {
-    const { name, description } = req.body;
-    const newModel = new Model({ name, description });
-    try {
-        const savedModel = await newModel.save();
-        res.status(201).json(savedModel);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
     }
     });
     app.get('/health', (req, res) => {
