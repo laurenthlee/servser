@@ -1,3 +1,5 @@
+// Express Server Code (index.js)
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -22,35 +24,29 @@ mongoose.connect(mongoURI, {
 app.use(cors());
 app.use(bodyParser.json());
 
-// Define Mongoose schema for models with file URLs
+// Define Mongoose schema for models
 const modelSchema = new mongoose.Schema({
   filename: String,
-  file_url: String,
+  file_url: String,  // Direct link to download the model file
 }, { collection: 'model' });
 
 const Model = mongoose.model('Model', modelSchema);
 
-// Root route
-app.get('/', (req, res) => {
-  res.send('Welcome to the API');
-});
-
-// Route to get model metadata with file URLs
+// API endpoint to fetch all model metadata
 app.get('/api/model', async (req, res) => {
   try {
-    // Fetch all models with filename and file_url fields
-    const models = await Model.find({}, 'filename file_url'); // Select specific fields
+    const models = await Model.find({}, 'filename file_url'); // Retrieve filename and file_url only
     res.json({ models });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Health check routes for Render
+// Health check endpoints
 app.get('/health', (req, res) => res.status(200).send('OK'));
 app.get('/server', (req, res) => res.status(200).send('OK'));
 
 // Start the server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
