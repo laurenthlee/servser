@@ -22,26 +22,45 @@ mongoose.connect(mongoURI, {
 app.use(cors());
 app.use(bodyParser.json());
 
-// Define GridFS schema to access fs.files for model metadata
+// Define Mongoose schema for `duriandata.model`
+const modelSchema = new mongoose.Schema({
+  model_ids: [{ type: mongoose.Schema.Types.ObjectId }]
+}, { collection: 'model' });
+
+const Model = mongoose.model('Model', modelSchema);
+
+// Define GridFS schema to access `fs.files` for model metadata
 const gfsFilesSchema = new mongoose.Schema({
   filename: String,
   chunkSize: Number,
   length: Number,
   uploadDate: Date
-}, { collection: 'fs.files' }); // Specify the 'fs.files' collection
+}, { collection: 'fs.files' });
 
-const GfsFile = mongoose.model('GfsFile', gfsFilesSchema); // Model for accessing `fs.files`
+const GfsFile = mongoose.model('GfsFile', gfsFilesSchema);
 
 // Root route
 app.get('/', (req, res) => {
   res.send('Welcome to the API');
 });
 
-// Route for fetching model metadata from fs.files
+// Route to get model metadata from `duriandata.model` and `fs.files`
 app.get('/api/model', async (req, res) => {
   try {
-    const models = await GfsFile.find({}, 'filename uploadDate length'); // Fetch specific fields
-    res.json({ models }); // Return model metadata
+    // 1. Fetch all model documents from `duriandata.model`
+    const models = await Model.find();
+
+    // 2. Loop through model_ids and fetch metadata from `fs.files`
+    const modelData = [];
+    for (const model of models) {
+      const files = await GfsFile.find({
+        _id: { $in: model.model_ids }
+      }, 'filename uploadDate length'); // Select specific fields
+
+      modelData.push(...files);
+    }
+
+    res.json({ models: modelData });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
